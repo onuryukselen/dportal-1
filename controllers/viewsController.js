@@ -6,6 +6,12 @@ exports.getOverview = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.getAdminOverview = catchAsync(async (req, res, next) => {
+  res.status(200).render('admin-overview', {
+    title: 'Admin Dashboard'
+  });
+});
+
 exports.getAccount = (req, res) => {
   res.status(200).render('account', {
     title: 'Your account'

@@ -16,5 +16,6 @@ router.get(
   viewsController.getOverview
 );
 router.get('/me', authController.requireLogin, viewsController.getAccount);
+router.get('/admin-overview', viewsController.getAdminOverview);
 
 module.exports = router;

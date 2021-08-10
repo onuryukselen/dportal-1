@@ -5,8 +5,14 @@ header.c-header.c-header-light.c-header-fixed.c-header-with-subheader
   ul.c-header-nav.d-md-down
     li.c-header-nav-item.px-3
       a.c-header-nav-link(href="/") Dashboard
-    li.c-header-nav-item.px-3
+    if user && (user.role == 'admin' || user.role == 'project-admin')
+      li.c-header-nav-item.px-3
+        a.c-header-nav-link(href="/admin-overview") Admin
   ul.c-header-nav.ml-auto.mr-4
+    //- if user
+    //-   li.c-header-nav-item.c-d-legacy-none
+    //-     a.c-header-nav-link(style="padding:8px;" href="profile" data-toggle="tooltip" data-placement="bottom" title="Profile")
+    //-       i.cil-user
     li.c-header-nav-item.dropdown(style="margin-right: 25px;")
       if changeLogVersion
         a#dportalVersionBut.c-header-nav-link(data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false")= "v" + changeLogVersion 

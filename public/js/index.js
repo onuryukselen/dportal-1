@@ -3,6 +3,7 @@ import '@babel/polyfill';
 import { login, logout } from './login';
 import { prepareDmetaData } from './jsfuncs';
 import { refreshDmetaTable } from './dmetaTable';
+import { getAdminNavbar, loadProfileTabContent } from './admin-overview';
 import { prepareBarGraph } from './chartjs';
 import { prepareBreadcrumb } from './breadcrumb';
 import { prepareSidebar } from './sidebar';
@@ -22,16 +23,6 @@ import './../vendors/@coreui/icons/css/free.min.css';
 import './../vendors/@coreui/icons/css/flag.min.css';
 import './../vendors/@coreui/icons/css/brand.min.css';
 
-// $(function() {
-//   $('[data-toggle="tooltip"]').tooltip();
-// });
-// require('@coreui/icons/css/all.min.css');
-
-// import 'bootstrap';
-// import 'bootstrap/dist/css/bootstrap.min.css';
-// import './../css/style.css';
-// import './../css/custom.css';
-
 // GLOBAL SCOPE
 let $scope = {};
 
@@ -39,6 +30,7 @@ let $scope = {};
 const envConf = document.querySelector('#session-env-config');
 const ssologin =
   envConf && envConf.getAttribute('sso_login') && envConf.getAttribute('sso_login') == 'true';
+const userRole = envConf && envConf.getAttribute('role');
 
 // DOM ELEMENTS
 const logOutBtn = document.querySelector('.nav__el--logout');
@@ -46,7 +38,8 @@ const logInBtn = document.querySelector('.nav__el--login');
 const afterSsoClose = document.querySelector('.after-sso-close');
 const loginForm = document.querySelector('.form--login');
 const dportalVersionBut = document.querySelector('#dportalVersionBut');
-
+const allProjectNav = document.querySelector('#allProjectNav');
+const adminAllProfileNav = document.querySelector('#admin-allProjectNav');
 if (logOutBtn) logOutBtn.addEventListener('click', logout);
 
 function popupwindow(url, title, w, h) {
@@ -102,7 +95,7 @@ const alertMessage = document.querySelector('body').dataset.alert;
 if (alertMessage) showAlert('success', alertMessage, 20);
 
 (async () => {
-  try {
+  if (allProjectNav) {
     const project = 'vitiligo';
     const send = { url: `/api/v1/projects/${project}/data/sample/detailed` };
     const res = await axios({
@@ -137,7 +130,16 @@ if (alertMessage) showAlert('success', alertMessage, 20);
     });
     prepareBreadcrumb(data);
     prepareSidebar(data);
+    $('a.collection[data-toggle="tab"]').trigger('show.coreui.tab');
+    $('[data-toggle="tooltip"]').tooltip();
+  }
+  if (adminAllProfileNav) {
+    const adminNavbar = await getAdminNavbar(userRole);
+    $('#admin-allProjectNav').append(adminNavbar);
+    loadProfileTabContent(userRole);
+  }
 
+  try {
     if (dportalVersionBut) {
       var checkLoad = $('#versionNotes').attr('readonly');
       if (typeof checkLoad === typeof undefined || checkLoad === false) {

@@ -1,7 +1,7 @@
 /* eslint-disable node/no-unpublished-require */
 const path = require('path');
 // const webpack = require('webpack');
-const TerserPlugin = require('terser-webpack-plugin'); //minimize js content
+// const TerserPlugin = require('terser-webpack-plugin'); //minimize js content
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlPlugin = require('html-webpack-plugin');
@@ -13,12 +13,25 @@ module.exports = {
     path: path.resolve(__dirname, './public/dist'), //create dist directory and save it bundle.js
     publicPath: 'dist/'
   },
+  optimization: {
+    runtimeChunk: 'single',
+    splitChunks: {
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+          maxSize: 1000000 //10MB
+        }
+      }
+    }
+  },
   watch: true,
   watchOptions: {
     ignored: ['node_modules/**']
   },
   mode: 'development',
-  devtool: 'source-map', //Webpack default uses eval and throws `unsafe-eval` error
+  devtool: 'inline-source-map', //Webpack default uses eval and throws `unsafe-eval` error
   module: {
     // how to import files
     rules: [
@@ -53,7 +66,15 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin({
-      cleanEveryAfterBuildPatterns: [path.resolve(__dirname, './public/dist'), '!*contenthash.pug']
+      cleanOnceBeforeBuildPatterns: [
+        '!*contenthash.pug',
+        path.resolve(__dirname, './public/dist/*'),
+        path.resolve(__dirname, './public/dist/*.map')
+      ],
+      // cleanAfterEveryBuildPatterns: [path.resolve(__dirname, './public/dist/*.map'),path.resolve(__dirname, './public/dist/*.map')],
+      // dangerouslyAllowCleanPatternsOutsideProject: true,
+      // protectedWebpackAssets: false,
+      dry: false
     }), // removes unused files in dist folder
     new HtmlPlugin({
       filename: 'contenthash.pug',
