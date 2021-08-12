@@ -1,4 +1,6 @@
 /* eslint-disable */
+const JSON5 = require('json5');
+
 export const cleanSpecChar = n => {
   if (n) {
     n = n
@@ -353,4 +355,23 @@ export const createFormObj = (formValues, requiredFields, warn, visible) => {
     if (name) formObj[name] = val;
   }
   return [formObj, stop];
+};
+
+export const IsJsonString = str => {
+  try {
+    JSON.parse(str);
+  } catch (e) {
+    return false;
+  }
+  return true;
+};
+export const IsJson5String = str => {
+  try {
+    console.log(str);
+    console.log(JSON5.parse(str));
+    JSON5.parse(str);
+  } catch (e) {
+    return false;
+  }
+  return true;
 };

@@ -1,8 +1,15 @@
 /* eslint-disable */
 import axios from 'axios';
 import moment from 'moment';
-
-import { showInfoModal, createFormObj, fillFormByName, getFormRow } from './jsfuncs';
+const JSON5 = require('json5');
+import {
+  showInfoModal,
+  createFormObj,
+  fillFormByName,
+  getFormRow,
+  prepareDmetaData,
+  IsJson5String
+} from './jsfuncs';
 
 // GLOBAL SCOPE
 let $s = { usergroups: {}, server: [] };
@@ -43,6 +50,16 @@ const getAdminTableOptions = (active, role) => {
       <ul class="dropdown-menu dropdown-menu-right" role="menu">
         <li><a class="dropdown-item editUser">Edit User</a></li>
         <li><a class="dropdown-item deleteUser">Delete User</a></li>
+      </ul>
+    </div>`;
+  return button;
+};
+const getConfigTableOptions = (active, role) => {
+  var button = `<div class="btn-group">
+      <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-expanded="true">Options <span class="fa fa-caret-down"></span></button>
+      <ul class="dropdown-menu dropdown-menu-right" role="menu">
+        <li><a class="dropdown-item editConfig">Edit Config</a></li>
+        <li><a class="dropdown-item deleteConfig">Delete Config</a></li>
       </ul>
     </div>`;
   return button;
@@ -228,6 +245,77 @@ const refreshServerTable = async () => {
   }
 };
 
+const refreshConfigTable = async () => {
+  const TableID = 'table-configs';
+  try {
+    let [configs] = await Promise.all([ajaxCall('GET', '/api/v1/config')]);
+    $s.configs = configs;
+  } catch {
+    $s.configs = [];
+  }
+  console.log($s.configs);
+  if (!$s.configs) $s.configs = [];
+  const data = $s.configs;
+  let fomatted_data = [];
+  if (data.length) {
+    fomatted_data = data.map(i => {
+      if (i.graphs) i.graphs = JSON.stringify(i.graphs);
+      i.creationDate = moment(i.creationDate).format('YYYY-MM-DD');
+      return i;
+    });
+  }
+  if ($.fn.DataTable.isDataTable(`#${TableID}`)) {
+    $(`#${TableID}`)
+      .DataTable()
+      .destroy();
+  }
+
+  if (!$.fn.DataTable.isDataTable(`#${TableID}`)) {
+    let columns = [];
+    columns.push({ data: '_id' });
+    columns.push({ data: 'project_name' });
+    columns.push({
+      data: 'graphs',
+      fnCreatedCell: function(nTd, sData, oData, iRow, iCol) {
+        if (oData.graphs) {
+          $(nTd).html(oData.graphs.substring(0, 30) + '...');
+        } else {
+          $(nTd).html('');
+        }
+      }
+    });
+    columns.push({
+      data: 'columns',
+      fnCreatedCell: function(nTd, sData, oData, iRow, iCol) {
+        $(nTd).html(JSON.stringify(oData.columns).substring(0, 30) + '...');
+      }
+    });
+    columns.push({
+      data: null,
+      fnCreatedCell: function(nTd, sData, oData, iRow, iCol) {
+        $(nTd).html(getConfigTableOptions(oData.active, oData.role));
+      }
+    });
+    var dataTableObj = {
+      columns: columns,
+      columnDefs: [
+        { defaultContent: '', targets: '_all' } //hides undefined error,
+      ]
+    };
+    dataTableObj.dom = '<"pull-left"f>lrt<"pull-left"i><"bottom"p><"clear">';
+    dataTableObj.destroy = true;
+    dataTableObj.pageLength = 10;
+    dataTableObj.data = fomatted_data;
+    dataTableObj.hover = true;
+    // speed up the table loading
+    dataTableObj.deferRender = true;
+    // dataTableObj.scroller = true;
+    // dataTableObj.scrollCollapse = true;
+    // dataTableObj.sScrollX = true; // dropdown remains under the datatable div
+    $s.TableID = $(`#${TableID}`).DataTable(dataTableObj);
+  }
+};
+
 const refreshAdminTable = async () => {
   const TableID = 'table-admin';
   try {
@@ -362,6 +450,40 @@ const getServersTab = id => {
   </div>`;
   return groups;
 };
+const getConfigsTab = id => {
+  const headers = getTableHeaders(['ID', 'Project Name', 'Graphs', 'Columns', 'Options']);
+  const tableID = `table-${id}`;
+  const table = `
+    <div class="table-responsive" style="overflow-x:auto; width:100%; ">
+      <table id="${tableID}" class="table table-striped" style='white-space: nowrap; width:100%;' cellspacing="0" >
+          <thead>
+              <tr>
+              ${headers}
+              </tr>
+          <tbody>
+          </tbody>
+      </thead>
+      </table>
+    </div>`;
+  const button = `<button class="btn btn-primary admin-add-config" type="button">Add a Project Config</button>`;
+  const groups = `
+    <div style="margin-top:10px;" class="row">
+      <div class="col-sm-12">
+        <div class="card">
+          <div class="card-header"> 
+          <span style="font-size:large; font-weight:600;"><i class="cil-sitemap"> </i> Project Configuration Panel</span>
+            <div style="float:right;" class="card-header-actions">
+              ${button}
+            </div>
+          </div>
+        <div class="card-body">
+          ${table}
+        </div>
+      </div>
+      </div>
+    </div>`;
+  return groups;
+};
 const getAdminTab = id => {
   const headers = getTableHeaders([
     'ID',
@@ -409,6 +531,7 @@ const getAdminTab = id => {
 export const loadProfileTabContent = userRole => {
   if (userRole == 'admin') {
     refreshConfigTable();
+    // refreshAdminTable();
   }
 };
 
@@ -422,6 +545,9 @@ const getGroupForm = () => {
 
 const getInputElement = (name, attr) => {
   return `<input class="form-control" type="text" name="${name}" ${attr} value=""></input>`;
+};
+const getTextareaElement = (name, attr) => {
+  return `<textarea name="${name}" ${attr} class="form-control" value="" rows="5"></textarea>`;
 };
 
 const getDropdown = (name, data) => {
@@ -454,8 +580,344 @@ const getServerUserForm = () => {
   ret += '</form>';
   return ret;
 };
+const getConfigUserForm = () => {
+  let ret = `<form id="configForm">`;
+  const project_name_element = `<div class="input-group">
+    ${getInputElement('project_name', 'required')}
+    <div class="input-group-append"><button id="validateProjectBut" class="btn btn-primary" type="button" data-toggle="tooltip" data-placement="bottom" title="Please enter project name and click search button." ><i class="cil-search"> </i></button></div>
+  </div>`;
+  ret += ``;
+  ret += getFormRow(project_name_element, 'Project Name', {});
+  ret += getFormRow(getTextareaElement('graphs', ''), 'Graph Settings', {});
+  ret += getFormRow(
+    `<div class="check-columns" style="display:none;"></div>`,
+    'Column Settings',
+    {}
+  );
+  ret += '</form>';
+  return ret;
+};
+
+const convertConfigFormat = formObj => {
+  // columns
+  let columns = [];
+  const order = formObj.order.split(',');
+  $('#config-column-table>tbody>tr').each(function(index) {
+    const formValues = $(this).find('input,select');
+    let [rowObj, stop] = createFormObj(formValues, '', true, true);
+    rowObj.name = $(this)
+      .find('[name=name')
+      .html();
+    columns.push(rowObj);
+  });
+  let reorderedColumns = [];
+  for (let i = 0; i < order.length; i++) {
+    reorderedColumns.push(columns.filter(c => c.name == order[i])[0]);
+  }
+  formObj.columns = reorderedColumns;
+  return formObj;
+};
 
 const bindEventHandlers = () => {
+  // -------- CONFIGS ------------------------------
+  $(document).on('click', `#validateProjectBut`, async function(e) {
+    const project = $(this)
+      .closest('.input-group')
+      .find('input')
+      .val();
+    const url = `/api/v1/projects/${project}/data/sample/format/detailed`;
+    const send = { url };
+    let res;
+    try {
+      res = await axios({
+        method: 'POST',
+        url: '/api/v1/dmeta',
+        data: send
+      });
+    } catch (err) {
+      showInfoModal(
+        `Please define ${url} route in Dmeta API config and insert sample data before project configuration.`
+      );
+      return;
+    }
+    console.log(res.data);
+    const data = prepareDmetaData(res.data);
+    if (data[0]) {
+      let keys = Object.keys(data[0]);
+      let removeCol = ['_id'];
+      keys = keys.filter(item => !removeCol.includes(item));
+      let tbody = '';
+
+      for (let i = 0; i < keys.length; i++) {
+        tbody += `
+      <tr>
+        <td><span name="name">${keys[i]}</span></td>
+        <td><input class="form-control" type="text" name="label" value=""></input></td>
+        <td>
+            <div class="form-check" style="margin-left: 25px;">
+                <input name="main" type="checkbox" class="form-check-input" style="position:relative;" >
+            </div>
+        </td>
+        <td>
+            <div class="form-check" style="margin-left: 25px;">
+                <input name="visible" type="checkbox" class="form-check-input" style="position:relative;" >
+            </div>
+        </td>
+        <td>
+            <div class="form-check" style="margin-left: 25px;">
+                <input name="toogle" type="checkbox" class="form-check-input" style="position:relative;" >
+            </div>
+        </td>
+        <td>
+            <div class="form-check" style="margin-left: 25px;">
+                <input name="sidebar" type="checkbox" class="form-check-input " style="position:relative;" >
+            </div>
+        </td>
+      </tr>`;
+      }
+      let form = `
+      <table id="config-column-table" class="table table-striped">
+        <thead>
+          <tr>
+            <th>Column Name</th>
+            <th>Column Label</th>
+            <th>Main Table Column</th>
+            <th>Visible on Load</th>
+            <th>Allow Toogle</th>
+            <th>Show in the sidebar</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tbody}
+        </tbody>
+      </table>`;
+      const orderRow = getFormRow(
+        `<input id="check-columns-order" class="form-control" type="text" name="order"  value="${keys.join(
+          ','
+        )}"></input>`,
+        'Column Order',
+        {}
+      );
+      $('div.check-columns').css('display', 'inline');
+      $('div.check-columns').empty();
+      $('div.check-columns').append(form);
+      $('div.check-columns')
+        .closest('.row')
+        .after(orderRow);
+      $('#check-columns-order').selectize({
+        plugins: ['drag_drop'],
+        delimiter: ',',
+        persist: true
+      });
+    }
+  });
+  const createConfigTable = data => {
+    let tbody = '';
+    let keys = data.map(d => d.name);
+    for (let i = 0; i < data.length; i++) {
+      const mainChecked = data[i].main ? 'checked' : '';
+      const visibleChecked = data[i].visible ? 'checked' : '';
+      const toogleChecked = data[i].toogle ? 'checked' : '';
+      const sidebarChecked = data[i].sidebar ? 'checked' : '';
+      tbody += `
+    <tr>
+      <td><span name="name">${data[i].name}</span></td>
+      <td><input class="form-control" type="text" name="label" value="${data[i].label}"></input></td>
+      <td>
+          <div class="form-check" style="margin-left: 25px;">
+              <input name="main" ${mainChecked} type="checkbox" class="form-check-input" style="position:relative;" >
+          </div>
+      </td>
+      <td>
+          <div class="form-check" style="margin-left: 25px;">
+              <input name="visible" ${visibleChecked} type="checkbox" class="form-check-input" style="position:relative;" >
+          </div>
+      </td>
+      <td>
+          <div class="form-check" style="margin-left: 25px;">
+              <input name="toogle" ${toogleChecked} type="checkbox" class="form-check-input" style="position:relative;" >
+          </div>
+      </td>
+      <td>
+          <div class="form-check" style="margin-left: 25px;">
+              <input name="sidebar" ${sidebarChecked} type="checkbox" class="form-check-input " style="position:relative;" >
+          </div>
+      </td>
+    </tr>`;
+    }
+    const form = `
+    <table id="config-column-table" class="table table-striped">
+      <thead>
+        <tr>
+          <th>Column Name</th>
+          <th>Column Label</th>
+          <th>Main Table Column</th>
+          <th>Visible on Load</th>
+          <th>Allow Toogle</th>
+          <th>Show in the sidebar</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tbody}
+      </tbody>
+    </table>`;
+    $('div.check-columns').css('display', 'inline');
+    $('div.check-columns').empty();
+    $('div.check-columns').append(form);
+    const orderRow = getFormRow(
+      `<input id="check-columns-order" class="form-control" type="text" name="order"  value="${keys.join(
+        ','
+      )}"></input>`,
+      'Column Order',
+      {}
+    );
+    $('div.check-columns')
+      .closest('.row')
+      .after(orderRow);
+    $('#check-columns-order').selectize({
+      plugins: ['drag_drop'],
+      delimiter: ',',
+      persist: true
+    });
+  };
+  $(document).on('click', `button.admin-add-config`, async function(e) {
+    $('#crudModalError').empty();
+    const form = getConfigUserForm();
+    $('#crudModalTitle').text(`Insert Config`);
+    $('#crudModalYes').text('Save');
+    $('#crudModalBody').empty();
+    $('#crudModalBody').append(getErrorDiv());
+    $('#crudModalBody').append(form);
+    $('#crudModal').off();
+
+    $('#crudModal').on('click', '#crudModalYes', async function(e) {
+      e.preventDefault();
+      $('#crudModalError').empty();
+      const formValues = $('#crudModal').find('input,select,textarea');
+      const requiredValues = formValues.filter('[required]');
+      const requiredFields = $.map(requiredValues, function(el) {
+        return $(el).attr('name');
+      });
+      let [formObj, stop] = createFormObj(formValues, requiredFields, true, true);
+      formObj = convertConfigFormat(formObj);
+      if (formObj.graphs && !IsJson5String(formObj.graphs)) {
+        showInfoModal('Please enter a valid JSON for graph settings.');
+      } else if (!stop) {
+        if (formObj.graphs) formObj.graphs = JSON5.parse(formObj.graphs);
+        try {
+          const res = await axios({
+            method: 'POST',
+            url: '/api/v1/config',
+            data: formObj
+          });
+          if (res.data.status == 'success') {
+            await refreshConfigTable();
+            $('#crudModal').modal('hide');
+          } else {
+            showInfoModal('Error occured.');
+          }
+        } catch (err) {
+          if (err.response && err.response.data && err.response.data.message) {
+            showInfoModal(`Error occured.(${JSON.stringify(err.response.data.message)})`);
+          } else {
+            showInfoModal(`Error occured.(${JSON.stringify(err)})`);
+          }
+        }
+      }
+    });
+    $('#crudModal').modal('show');
+  });
+  $(document).on('click', `a.deleteConfig`, async function(e) {
+    const clickedRow = $(this).closest('tr');
+    const table = $('#table-configs').DataTable();
+    const data = table.row(clickedRow).data();
+    const id = data._id;
+
+    $('#crudModalTitle').text(`Remove Config`);
+    $('#crudModalYes').text('Remove');
+    $('#crudModalBody').empty();
+    $('#crudModalBody').append(
+      `<p>Are you sure you want to delete config (${data.project_name})?</p>`
+    );
+    $('#crudModal').off();
+    $('#crudModal').on('click', '#crudModalYes', async function(e) {
+      if (id) {
+        try {
+          const res = await axios({
+            method: 'DELETE',
+            url: `/api/v1/config/${id}`
+          });
+          await refreshConfigTable();
+          $('#crudModal').modal('hide');
+        } catch (err) {
+          console.log(err);
+          if (err.response && err.response.data && err.response.data.message) {
+            showInfoModal(`Error occured.(${JSON.stringify(err.response.data.message)})`);
+          } else {
+            showInfoModal(`Error occured.(${JSON.stringify(err)})`);
+          }
+        }
+      }
+    });
+    $('#crudModal').modal('show');
+  });
+
+  $(document).on('click', `a.editConfig`, async function(e) {
+    const clickedRow = $(this).closest('tr');
+    const table = $('#table-configs').DataTable();
+    const data = table.row(clickedRow).data();
+    const id = data._id;
+
+    $('#crudModalError').empty();
+    const form = getConfigUserForm();
+    $('#crudModalTitle').text(`Edit Config`);
+    $('#crudModalYes').text('Save');
+    $('#crudModalBody').empty();
+    $('#crudModalBody').append(getErrorDiv());
+    $('#crudModalBody').append(form);
+    $('#crudModal').off();
+    fillFormByName('#configForm', 'input, select,textarea', data, true);
+    createConfigTable(data.columns);
+    $('#crudModal').on('click', '#crudModalYes', async function(e) {
+      e.preventDefault();
+      $('#crudModalError').empty();
+      const formValues = $('#crudModal').find('input,select,textarea');
+      const requiredValues = formValues.filter('[required]');
+      const requiredFields = $.map(requiredValues, function(el) {
+        return $(el).attr('name');
+      });
+      let [formObj, stop] = createFormObj(formValues, requiredFields, true, true);
+      formObj = convertConfigFormat(formObj);
+
+      console.log(formObj);
+      if (formObj.graphs && !IsJson5String(formObj.graphs)) {
+        showInfoModal('Please enter a valid JSON for graph settings.');
+      } else if (!stop) {
+        if (formObj.graphs) formObj.graphs = JSON5.parse(formObj.graphs);
+        try {
+          const res = await axios({
+            method: 'PATCH',
+            url: `/api/v1/config/${id}`,
+            data: formObj
+          });
+          console.log(res);
+          if (res.data.status == 'success') {
+            await refreshConfigTable();
+            $('#crudModal').modal('hide');
+          } else {
+            showInfoModal('Error occured.');
+          }
+        } catch (err) {
+          if (err.response && err.response.data && err.response.data.message) {
+            showInfoModal(`Error occured.(${JSON.stringify(err.response.data.message)})`);
+          } else {
+            showInfoModal(`Error occured.(${JSON.stringify(err)})`);
+          }
+        }
+      }
+    });
+    $('#crudModal').modal('show');
+  });
   // -------- SERVERS ------------------------------
   $(document).on('click', `button.admin-add-server`, async function(e) {
     $('#crudModalError').empty();
@@ -948,10 +1410,10 @@ export const getAdminNavbar = async userRole => {
   bindEventHandlers();
 
   let tabs = [];
-  tabs.push({ label: 'Groups', id: 'groups' });
+  //   tabs.push({ label: 'Groups', id: 'groups' });
   if (userRole == 'admin') {
-    tabs.push({ label: 'Admin', id: 'admin' });
-    tabs.push({ label: 'Servers', id: 'servers' });
+    // tabs.push({ label: 'Users', id: 'admin' });
+    tabs.push({ label: 'Project Configuration', id: 'configs' });
   }
   let header = '<ul class="nav nav-tabs" role="tablist">';
   let content = '<div class="tab-content">';
@@ -973,6 +1435,8 @@ export const getAdminNavbar = async userRole => {
       tabContent = getAdminTab(id);
     } else if (id == 'servers') {
       tabContent = getServersTab(id);
+    } else if (id == 'configs') {
+      tabContent = getConfigsTab(id);
     }
     const contentDiv = `
     <div role="tabpanel" class="tab-pane ${active}" searchtab="true" id="${tabID}">

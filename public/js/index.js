@@ -10,12 +10,15 @@ import { prepareSidebar } from './sidebar';
 import { showAlert } from './alerts';
 import axios from 'axios';
 import 'jquery';
+import 'jquery-ui';
 import '@coreui/coreui';
 // import '@coreui/coreui/dist/css/coreui.min.css';
 
 require('datatables.net'); // Datatables Core
 require('datatables.net-bs4/js/dataTables.bootstrap4.js'); // Datatables Bootstrap 4
 require('datatables.net-bs4/css/dataTables.bootstrap4.css'); // Datatables Bootstrap 4
+require('selectize/dist/js/selectize.js');
+require('selectize/dist/css/selectize.bootstrap3.css');
 // require('datatables.net-colreorder');
 // require('datatables.net-colreorder-bs4');
 // import './../css/style.css';
@@ -128,7 +131,7 @@ if (alertMessage) showAlert('success', alertMessage, 20);
       colorSchema: 'Tableau10',
       chartId: 'basicBarChart3'
     });
-    prepareBreadcrumb(data);
+    prepareBreadcrumb('Dashboard', data);
     prepareSidebar(data);
     $('a.collection[data-toggle="tab"]').trigger('show.coreui.tab');
     $('[data-toggle="tooltip"]').tooltip();
@@ -137,6 +140,7 @@ if (alertMessage) showAlert('success', alertMessage, 20);
     const adminNavbar = await getAdminNavbar(userRole);
     $('#admin-allProjectNav').append(adminNavbar);
     loadProfileTabContent(userRole);
+    prepareBreadcrumb('Admin');
   }
 
   try {

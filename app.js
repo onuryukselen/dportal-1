@@ -16,6 +16,7 @@ const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const userRouter = require('./routes/userRoutes');
 const serverRouter = require('./routes/serverRoutes');
+const configRouter = require('./routes/configRoutes');
 const groupRouter = require('./routes/groupRoutes');
 const userGroupRouter = require('./routes/userGroupRoutes');
 const dmetaRouter = require('./routes/dmetaRoutes');
@@ -134,6 +135,7 @@ app.use('/api/v1/groups', groupRouter);
 app.use('/api/v1/server', serverRouter);
 app.use('/api/v1/usergroups', userGroupRouter);
 app.use('/api/v1/misc', miscRouter);
+app.use('/api/v1/config', configRouter);
 app.use('/', viewRouter);
 
 app.all('*', (req, res, next) => {
