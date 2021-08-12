@@ -4,12 +4,15 @@ import { createDataSummary } from './dataSummary';
 import Chart from 'chart.js';
 import 'chartjs-plugin-colorschemes';
 // GLOBAL SCOPE
-let $scope = {};
-$scope.dmeta_summary = {};
+let $s = {};
+$s.dmeta_summary = {};
 
 const createSingleDatasetBarGraph = (barLabels, xLabel, yLabel, data, colorSchema, chartId) => {
+  if ($s[chartId]) {
+    $s[chartId].destroy();
+  }
   var ctx = document.getElementById(chartId);
-  var myChart = new Chart(ctx, {
+  $s[chartId] = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: barLabels,
@@ -51,8 +54,8 @@ const createSingleDatasetBarGraph = (barLabels, xLabel, yLabel, data, colorSchem
   });
 };
 
-export const prepareBarGraph = async function(data, options) {
-  const sum = await createDataSummary(data, [options.dataCol]);
+export const prepareBarGraph = async function(data, options, project) {
+  const sum = await createDataSummary(data, [options.dataCol], project);
   //   console.log(getDmetaColumns());
   if (sum[options.dataCol]) {
     const barLabels = Object.keys(sum[options.dataCol]);

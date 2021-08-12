@@ -1,9 +1,9 @@
 /* eslint-disable */
 import { createDataSummary } from './dataSummary';
 
-export const prepareBreadcrumb = function(type, data) {
+export const prepareBreadcrumb = function(type, data, project) {
   if (type === 'Dashboard') {
-    const sumData = createDataSummary(data, ['series', 'biosample_name']);
+    const sumData = createDataSummary(data, ['series', 'biosample_name'], project);
     const sample_num = data.length;
     const exp_series_num = Object.keys(sumData['series']).length;
     const exp_num = Object.keys(sumData['biosample_name']).length;

@@ -701,6 +701,12 @@ const bindEventHandlers = () => {
       $('div.check-columns').css('display', 'inline');
       $('div.check-columns').empty();
       $('div.check-columns').append(form);
+      if (document.querySelector('#check-columns-order')) {
+        $('div.check-columns')
+          .closest('.row')
+          .next()
+          .remove();
+      }
       $('div.check-columns')
         .closest('.row')
         .after(orderRow);
@@ -713,16 +719,18 @@ const bindEventHandlers = () => {
   });
   const createConfigTable = data => {
     let tbody = '';
-    let keys = data.map(d => d.name);
+    let keys = data.map(d => d && d.name);
     for (let i = 0; i < data.length; i++) {
-      const mainChecked = data[i].main ? 'checked' : '';
-      const visibleChecked = data[i].visible ? 'checked' : '';
-      const toogleChecked = data[i].toogle ? 'checked' : '';
-      const sidebarChecked = data[i].sidebar ? 'checked' : '';
+      const mainChecked = data[i] && data[i].main ? 'checked' : '';
+      const visibleChecked = data[i] && data[i].visible ? 'checked' : '';
+      const toogleChecked = data[i] && data[i].toogle ? 'checked' : '';
+      const sidebarChecked = data[i] && data[i].sidebar ? 'checked' : '';
+      const name = data[i] && data[i].name ? data[i].name : '';
+      const label = data[i] && data[i].label ? data[i].label : '';
       tbody += `
     <tr>
-      <td><span name="name">${data[i].name}</span></td>
-      <td><input class="form-control" type="text" name="label" value="${data[i].label}"></input></td>
+      <td><span name="name">${name}</span></td>
+      <td><input class="form-control" type="text" name="label" value="${label}"></input></td>
       <td>
           <div class="form-check" style="margin-left: 25px;">
               <input name="main" ${mainChecked} type="checkbox" class="form-check-input" style="position:relative;" >

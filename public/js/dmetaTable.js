@@ -6,189 +6,213 @@ import {
   tsvCsvDatatablePrep,
   dmetaOutDatatablePrep
 } from './jsfuncs';
+import { prepareBarGraph } from './chartjs';
+import { prepareBreadcrumb } from './breadcrumb';
+import { prepareSidebar } from './sidebar';
 // GLOBAL SCOPE
-let $s = { data: { file: {}, server: {}, run: {}, out: {} }, outCollections: [], DTObj: {} };
+let $s = {
+  configs: [],
+  project: {},
+  data: { sample: {}, file: {}, server: {}, run: {}, out: {} },
+  outCollections: [],
+  DTObj: {}
+};
 export const getDmetaColumns = () => {
   return $s;
 };
+
+const ajaxCall = async (method, url) => {
+  console.log(method, url);
+  try {
+    const res = await axios({
+      method,
+      url
+    });
+    return res.data.data.data;
+  } catch (err) {
+    //console.log(err);
+    return '';
+  }
+};
+
 // Config for Dmeta table
 // Main columns for table
-$s.mainCols = [
-  '$plusButton',
-  'name',
-  'status',
-  'series',
-  'patient',
-  'aliquot',
-  'clin_pheno',
-  'skin',
-  'patient_note',
-  'cell_density_tc',
-  'cell_density_indrop',
-  'cells_umis_gt_500',
-  'col_date',
-  'library_tube_id',
-  'pool_id',
-  'bead_batch',
-  'blister_comments',
-  'blister_loc',
-  'blister_num',
-  'ethnicity',
-  'gender',
-  'biosample_name',
-  'biosample_type',
-  'organism',
-  'perc_live_cells',
-  'total_cells',
-  'visit_num',
-  'volume_bf',
-  'comment',
-  'contract',
-  'index_id',
-  'index_seq',
-  'run_comments',
-  'sc_lib_status',
-  'seq_comments',
-  'seq_details',
-  'sequence_date',
-  'unique_id',
-  'total_valid_reads',
-  'duplication_rate',
-  'mean_umi',
-  'mean_cell',
-  'date_created',
-  'owner',
-  '$detailsButton'
-];
+// $s.mainCols = [
+//   '$plusButton',
+//   'name',
+//   'status',
+//   'series',
+//   'patient',
+//   'aliquot',
+//   'clin_pheno',
+//   'skin',
+//   'patient_note',
+//   'cell_density_tc',
+//   'cell_density_indrop',
+//   'cells_umis_gt_500',
+//   'col_date',
+//   'library_tube_id',
+//   'pool_id',
+//   'bead_batch',
+//   'blister_comments',
+//   'blister_loc',
+//   'blister_num',
+//   'ethnicity',
+//   'gender',
+//   'biosample_name',
+//   'biosample_type',
+//   'organism',
+//   'perc_live_cells',
+//   'total_cells',
+//   'visit_num',
+//   'volume_bf',
+//   'comment',
+//   'contract',
+//   'index_id',
+//   'index_seq',
+//   'run_comments',
+//   'sc_lib_status',
+//   'seq_comments',
+//   'seq_details',
+//   'sequence_date',
+//   'unique_id',
+//   'total_valid_reads',
+//   'duplication_rate',
+//   'mean_umi',
+//   'mean_cell',
+//   'date_created',
+//   'owner',
+//   '$detailsButton'
+// ];
 
-$s.mainColLabels = [
-  '',
-  'Name',
-  'Status',
-  'Series',
-  'Patient',
-  'Aliquot',
-  'Clinical phenotype',
-  'Skin',
-  'Patient Note',
-  'Cell density (TC)',
-  'Cell density indrop',
-  'Cells UMIs>500',
-  'Collect date',
-  'Library tube id',
-  'Pool id',
-  'Bead Batch',
-  'Blister Comments',
-  'Blister Location',
-  'Blister #',
-  'Ethnicity',
-  'Gender',
-  'Biosample Name',
-  'Biosample Type',
-  'Organism',
-  '%Live Cells',
-  'Total Cells',
-  'Visit #',
-  'Volume BF',
-  'Comment',
-  'Contract',
-  'Index Id',
-  'Index Seq',
-  'Run Comments',
-  'Sc Lib Status',
-  'Seq Comments',
-  'Seq Details',
-  'Sequence Date',
-  'Unique Id',
-  'Total Valid Reads',
-  'Duplication Rate',
-  'Mean UMIs per Cell',
-  'Mean Genes per Cell',
-  'Added on',
-  'Owner',
-  'Run'
-];
+// $s.mainColLabels = [
+//   '',
+//   'Name',
+//   'Status',
+//   'Series',
+//   'Patient',
+//   'Aliquot',
+//   'Clinical phenotype',
+//   'Skin',
+//   'Patient Note',
+//   'Cell density (TC)',
+//   'Cell density indrop',
+//   'Cells UMIs>500',
+//   'Collect date',
+//   'Library tube id',
+//   'Pool id',
+//   'Bead Batch',
+//   'Blister Comments',
+//   'Blister Location',
+//   'Blister #',
+//   'Ethnicity',
+//   'Gender',
+//   'Biosample Name',
+//   'Biosample Type',
+//   'Organism',
+//   '%Live Cells',
+//   'Total Cells',
+//   'Visit #',
+//   'Volume BF',
+//   'Comment',
+//   'Contract',
+//   'Index Id',
+//   'Index Seq',
+//   'Run Comments',
+//   'Sc Lib Status',
+//   'Seq Comments',
+//   'Seq Details',
+//   'Sequence Date',
+//   'Unique Id',
+//   'Total Valid Reads',
+//   'Duplication Rate',
+//   'Mean UMIs per Cell',
+//   'Mean Genes per Cell',
+//   'Added on',
+//   'Owner',
+//   'Run'
+// ];
 
 // columns that are going to be visible on startup
-$s.initialShowCols = [
-  '$plusButton',
-  'name',
-  'status',
-  'experiment',
-  'patient',
-  'aliquot',
-  'clin_pheno',
-  'skin',
-  'patient_note',
-  'cell_density_tc',
-  'cell_density_indrop',
-  'col_date',
-  'library_tube_id',
-  'pool_id',
-  'date_created',
-  'owner',
-  '$detailsButton'
-];
+// $s.initialShowCols = [
+//   '$plusButton',
+//   'name',
+//   'status',
+//   'experiment',
+//   'patient',
+//   'aliquot',
+//   'clin_pheno',
+//   'skin',
+//   'patient_note',
+//   'cell_density_tc',
+//   'cell_density_indrop',
+//   'col_date',
+//   'library_tube_id',
+//   'pool_id',
+//   'date_created',
+//   'owner',
+//   '$detailsButton'
+// ];
 
 // columns that listed in configuration menu
 // each config column defined in different object
 // [{"main": ["name", "status"]}, {"sample_summary":'sample_summary.Total Reads'}]
 
-$s.showHideCols = [
-  'name',
-  'status',
-  'series',
-  'patient',
-  'aliquot',
-  'clin_pheno',
-  'skin',
-  'patient_note',
-  'cell_density_tc',
-  'cell_density_indrop',
-  'cells_umis_gt_500',
-  'col_date',
-  'library_tube_id',
-  'pool_id',
-  'bead_batch',
-  'blister_comments',
-  'blister_loc',
-  'blister_num',
-  'ethnicity',
-  'gender',
-  'biosample_name',
-  'biosample_type',
-  'organism',
-  'perc_live_cells',
-  'total_cells',
-  'visit_num',
-  'volume_bf',
-  'comment',
-  'contract',
-  'index_id',
-  'index_seq',
-  'run_comments',
-  'sc_lib_status',
-  'seq_comments',
-  'seq_details',
-  'sequence_date',
-  'unique_id',
-  'total_valid_reads',
-  'duplication_rate',
-  'mean_umi',
-  'mean_cell',
-  'date_created'
-];
+// $s.showHideCols = [
+//   'name',
+//   'status',
+//   'series',
+//   'patient',
+//   'aliquot',
+//   'clin_pheno',
+//   'skin',
+//   'patient_note',
+//   'cell_density_tc',
+//   'cell_density_indrop',
+//   'cells_umis_gt_500',
+//   'col_date',
+//   'library_tube_id',
+//   'pool_id',
+//   'bead_batch',
+//   'blister_comments',
+//   'blister_loc',
+//   'blister_num',
+//   'ethnicity',
+//   'gender',
+//   'biosample_name',
+//   'biosample_type',
+//   'organism',
+//   'perc_live_cells',
+//   'total_cells',
+//   'visit_num',
+//   'volume_bf',
+//   'comment',
+//   'contract',
+//   'index_id',
+//   'index_seq',
+//   'run_comments',
+//   'sc_lib_status',
+//   'seq_comments',
+//   'seq_details',
+//   'sequence_date',
+//   'unique_id',
+//   'total_valid_reads',
+//   'duplication_rate',
+//   'mean_umi',
+//   'mean_cell',
+//   'date_created'
+// ];
 
-$s.sidebarFilterCols = [
-  'status',
-  'series',
-  'patient',
-  'aliquot',
-  'clin_pheno',
-  'skin',
-  'pool_id',
-  'owner'
-];
+// $s.sidebarFilterCols = [
+//   'status',
+//   'series',
+//   'patient',
+//   'aliquot',
+//   'clin_pheno',
+//   'skin',
+//   'pool_id',
+//   'owner'
+// ];
 
 // input: selected mainCols in array
 // returns: labels in array
@@ -241,16 +265,144 @@ const getColSelectMenu = () => {
   return menuDiv;
 };
 
-const insertTableHeaders = () => {
+const insertTableHeaders = TableID => {
+  $(TableID).empty();
+  $(TableID).append(`<thead><tr id="dmetaDetailedTableHeader"></tr></thead><tbody></tbody>`);
   for (var i = 0; i < $s.mainColLabels.length; i++) {
     $('#dmetaDetailedTableHeader').append(`<th>${$s.mainColLabels[i]}</th>`);
   }
 };
 
+const prepareColumnConfig = columnConfig => {
+  let mainCols = [];
+  let mainColLabels = [];
+  let initialShowCols = [];
+  let showHideCols = [];
+  let sidebarFilterCols = [];
+  const mainColsObjs = columnConfig.filter(c => c.main);
+  if (mainColsObjs) {
+    mainCols = mainColsObjs.map(c => c.name);
+    mainColLabels = mainColsObjs.map(c => c.label);
+    sidebarFilterCols = mainColsObjs.map(c => c.sidebar);
+  }
+  const visibleColsObjs = mainColsObjs.filter(c => c.visible);
+  if (visibleColsObjs) initialShowCols = visibleColsObjs.map(c => c.name);
+  const showHideColsObj = mainColsObjs.filter(c => c.toogle);
+  if (showHideColsObj) showHideCols = showHideColsObj.map(c => c.name);
+  const sidebarFilterColsObj = columnConfig.filter(c => c.sidebar);
+  if (sidebarFilterColsObj) sidebarFilterCols = sidebarFilterColsObj.map(c => c.name);
+
+  mainCols.unshift('$plusButton');
+  mainColLabels.unshift('');
+  initialShowCols.unshift('$plusButton');
+  $s.mainCols = mainCols;
+  $s.mainColLabels = mainColLabels;
+  $s.initialShowCols = initialShowCols;
+  $s.showHideCols = showHideCols;
+  $s.sidebarFilterCols = sidebarFilterCols;
+  console.log('mainCols', $s.mainCols);
+  console.log('mainColLabels', $s.mainColLabels);
+  console.log('initialShowCols', $s.initialShowCols);
+  console.log('showHideCols', $s.showHideCols);
+  console.log('sidebarFilterCols', $s.sidebarFilterCols);
+};
+
+const bindEventHandlers = () => {
+  $(document).on('shown.coreui.tab', 'a.outcolltab[data-toggle="tab"]', function(e) {
+    $($.fn.dataTable.tables(true))
+      .DataTable()
+      .columns.adjust();
+  });
+  //sidebar collapse
+  $(document).on('show.coreui.collapse', '.collapse', function(e) {
+    $(this)
+      .prev('.card-header')
+      .find('.cil')
+      .removeClass('cil-plus')
+      .addClass('cil-minus');
+  });
+  $(document).on('hide.coreui.collapse', '.collapse', function(e) {
+    $(this)
+      .prev('.card-header')
+      .find('.cil')
+      .removeClass('cil-minus')
+      .addClass('cil-plus');
+  });
+
+  $(document).on('change', 'select.toggle-project', async function(e) {
+    const project = $(this).val();
+    const projectConfig = $s.configs.filter(i => i.project_name == project)[0];
+    $s.data = { sample: {}, file: {}, server: {}, run: {}, out: {} };
+    $s.outCollections = [];
+    $s.DTObj = {};
+    prepareColumnConfig(projectConfig.columns);
+    let data = '';
+    if ($s.project[project] && $s.project[project].data) {
+      data = $s.project[project].data;
+    } else {
+      const send = { url: `/api/v1/projects/${project}/data/sample/format/detailed` };
+      const res = await axios({
+        method: 'POST',
+        url: '/api/v1/dmeta',
+        data: send
+      });
+      console.log(res.data);
+      data = prepareDmetaData(res.data);
+      $s.project[project] = {};
+      $s.project[project].data = data;
+    }
+    console.log('data', data);
+    if (data) {
+      refreshDmetaTable(data, 'dmetaDetailed', project);
+      const projectGraphs = projectConfig.graphs;
+      for (let i = 0; i < projectGraphs.length; i++) {
+        if (projectGraphs[i].type == 'bar') {
+          prepareBarGraph(
+            data,
+            {
+              dataCol: projectGraphs[i].dataCol,
+              xLabel: projectGraphs[i].xLabel,
+              yLabel: projectGraphs[i].yLabel,
+              colorSchema: 'Tableau10',
+              chartId: `basicBarChart${i + 1}`
+            },
+            project
+          );
+        }
+      }
+
+      prepareBreadcrumb('Dashboard', data, project);
+      prepareSidebar(data, project);
+      $('a.collection[data-toggle="tab"]').trigger('show.coreui.tab');
+      $('[data-toggle="tooltip"]').tooltip();
+    }
+  });
+};
+
+const getDropdown = (className, name, data) => {
+  return dropdown;
+};
+
+export const prepareProjectNav = async () => {
+  bindEventHandlers();
+  const configs = await ajaxCall('GET', `/api/v1/config`);
+  $s.configs = configs;
+  let dropdown = `<select class="form-control form-control-sm toggle-project" >`;
+  if (configs) {
+    configs.forEach(i => {
+      const name = i.project_name.charAt(0).toUpperCase() + i.project_name.slice(1);
+      dropdown += `<option  value="${i.project_name}">${name}</option>`;
+    });
+  }
+  dropdown += `</select>`;
+  $('#projectToogleDiv').append(dropdown);
+  $('.toggle-project').trigger('change');
+  $('.breadcrumb-dashboard').css('display', 'inline-flex');
+};
+
 export const refreshDmetaTable = function(data, id, project) {
   var TableID = '#' + id + 'Table';
   var searchBarID = '#' + id + 'SearchBar';
-  insertTableHeaders();
 
   var initCompDmetaTable = function(settings, json) {
     console.log('initCompDmetaTable');
@@ -493,7 +645,7 @@ export const refreshDmetaTable = function(data, id, project) {
         const res = await axios({
           method: 'POST',
           url: '/api/v1/dmeta',
-          data: { url: `/api/v1/projects/${project}/data/file/summary?sample_id=${rowid}` }
+          data: { url: `/api/v1/projects/${project}/data/file/format/summary?sample_id=${rowid}` }
         });
         const data = prepareDmetaData(res.data);
         console.log('file', data);
@@ -899,71 +1051,76 @@ export const refreshDmetaTable = function(data, id, project) {
     };
 
     // Add event listener for opening and closing details
-    $(document).on('click', 'td.details-control', async function(e) {
-      var icon = $(this).find('i');
-      var tr = $(this).closest('tr');
-      var row = api.row(tr);
-      let rowid = '';
-      if (row.child.isShown()) {
-        // close child row
-        row.child.hide();
-        tr.removeClass('shown');
-        icon.removeClass('cil-minus').addClass('cil-plus');
-      } else {
-        // Open child row
-        if (!row.child()) {
-          const rowdata = row.data();
-          const formattedRow = await formatChildRow(rowdata);
-          rowid = cleanSpecChar(rowdata._id);
-          row.child(formattedRow).show();
-          refreshOutTables(rowid);
+    $(document)
+      .off('click', 'td.details-control')
+      .on('click', 'td.details-control', async function(e) {
+        console.log('1110');
+        var icon = $(this).find('i');
+        var tr = $(this).closest('tr');
+        var row = api.row(tr);
+        let rowid = '';
+        if (row.child.isShown()) {
+          // close child row
+          row.child.hide();
+          tr.removeClass('shown');
+          icon.removeClass('cil-minus').addClass('cil-plus');
         } else {
-          row.child.show();
-        }
-        tr.addClass('shown');
-        icon.removeClass('cil-plus').addClass('cil-minus');
+          // Open child row
+          if (!row.child()) {
+            const rowdata = row.data();
+            const formattedRow = await formatChildRow(rowdata);
+            rowid = cleanSpecChar(rowdata._id);
+            row.child(formattedRow).show();
+            refreshOutTables(rowid);
+          } else {
+            row.child.show();
+          }
+          tr.addClass('shown');
+          icon.removeClass('cil-plus').addClass('cil-minus');
 
-        // $(`.outcollselectrun[sample_id="${rowid}"]`).trigger('change');
-      }
-    });
+          // $(`.outcollselectrun[sample_id="${rowid}"]`).trigger('change');
+        }
+      });
 
     // Add event listener for opening and closing details of out collection
-    $(document).on('click', 'td.outdetails-control', async function(e) {
-      var icon = $(this).find('i');
-      var tr = $(this).closest('tr');
-      const tableID = $(this)
-        .closest('table')
-        .attr('id');
-      const sample_id = $(`#${tableID}`).attr('sample_id');
-      const collName = $(`#${tableID}`).attr('collName');
-      const table = $(`#${tableID}`).DataTable();
-      var row = table.row(tr);
-      const rowIdx = table.row(tr).index();
-      if (row.child.isShown()) {
-        // close child row
-        row.child.hide();
-        tr.removeClass('shown');
-        icon.removeClass('cil-minus').addClass('cil-plus');
-      } else {
-        // Open child row
-        if (!row.child()) {
-          const rowdata = row.data();
-          console.log(rowIdx);
-          console.log(rowdata);
-          const formattedRow = await formatOutChildRow(rowdata, rowIdx, sample_id, collName);
-          row.child(formattedRow).show();
-          refreshFileTables(sample_id);
+    $(document)
+      .off('click', 'td.outdetails-control')
+      .on('click', 'td.outdetails-control', async function(e) {
+        var icon = $(this).find('i');
+        var tr = $(this).closest('tr');
+        const tableID = $(this)
+          .closest('table')
+          .attr('id');
+        const sample_id = $(`#${tableID}`).attr('sample_id');
+        const collName = $(`#${tableID}`).attr('collName');
+        const table = $(`#${tableID}`).DataTable();
+        var row = table.row(tr);
+        const rowIdx = table.row(tr).index();
+        if (row.child.isShown()) {
+          // close child row
+          row.child.hide();
+          tr.removeClass('shown');
+          icon.removeClass('cil-minus').addClass('cil-plus');
         } else {
-          row.child.show();
-        }
-        tr.addClass('shown');
-        icon.removeClass('cil-plus').addClass('cil-minus');
+          // Open child row
+          if (!row.child()) {
+            const rowdata = row.data();
+            console.log(rowIdx);
+            console.log(rowdata);
+            const formattedRow = await formatOutChildRow(rowdata, rowIdx, sample_id, collName);
+            row.child(formattedRow).show();
+            refreshFileTables(sample_id);
+          } else {
+            row.child.show();
+          }
+          tr.addClass('shown');
+          icon.removeClass('cil-plus').addClass('cil-minus');
 
-        $($.fn.dataTable.tables(true))
-          .DataTable()
-          .columns.adjust();
-      }
-    });
+          $($.fn.dataTable.tables(true))
+            .DataTable()
+            .columns.adjust();
+        }
+      });
 
     const refreshOutTables = rowid => {
       const tables = $(`.outTables[sample_id="${rowid}"]`);
@@ -1013,72 +1170,71 @@ export const refreshDmetaTable = function(data, id, project) {
         }
       }
     };
-
-    $(document).on('shown.coreui.tab', 'a.outcolltab[data-toggle="tab"]', function(e) {
-      $($.fn.dataTable.tables(true))
-        .DataTable()
-        .columns.adjust();
-    });
   };
 
-  if (!$.fn.DataTable.isDataTable(TableID)) {
-    let columns = [];
-    for (var i = 0; i < $s.mainCols.length; i++) {
-      if ($s.mainCols[i] == '$detailsButton') {
-        columns.push({
-          data: null,
-          fnCreatedCell: function(nTd, sData, oData, iRow, iCol) {
-            let btn = '';
-            if (oData.run_url) {
-              var run_url = oData.run_url;
-              btn = `<a href="${run_url}" target="_blank">View Run</a>`;
-            }
-            $(nTd).html(btn);
-          }
-        });
-      } else if ($s.mainCols[i] == '$plusButton') {
-        columns.push({
-          className: 'details-control',
-          orderable: false,
-          data: null,
-          defaultContent: '<i class="cil-plus"></i>'
-        });
-      } else {
-        columns.push({ data: $s.mainCols[i] });
-      }
-    }
-    var dataTableObj = {
-      columns: columns,
-      // select: {
-      //   style: 'multi',
-      //   selector: 'td:not(.no_select_row)'
-      // },
-      order: [[24, 'desc']],
-      columnDefs: [
-        {
-          targets: getHideColIds(),
-          visible: false
-        },
-        { defaultContent: '-', targets: '_all' } //hides undefined error
-      ],
-      initComplete: initCompDmetaTable,
-      lengthMenu: [
-        [10, 25, 50, -1],
-        [10, 25, 50, 'All']
-      ]
-    };
-
-    dataTableObj.dom = '<"' + searchBarID + '.pull-left"f>lrt<"pull-left"i><"bottom"p><"clear">';
-    dataTableObj.pageLength = 25;
-    dataTableObj.destroy = true;
-    dataTableObj.data = data;
-    dataTableObj.hover = true;
-    // speed up the table loading
-    dataTableObj.deferRender = true;
-    dataTableObj.scroller = true;
-    dataTableObj.scrollCollapse = true;
-    dataTableObj.scrollX = 500;
-    dataTableObj.sScrollX = true;
-    $s.dmetaTable = $(TableID).DataTable(dataTableObj);
+  if ($.fn.DataTable.isDataTable(TableID)) {
+    $(TableID)
+      .DataTable()
+      .destroy();
   }
+  insertTableHeaders(TableID);
+  let columns = [];
+  for (var i = 0; i < $s.mainCols.length; i++) {
+    if ($s.mainCols[i] == '$detailsButton') {
+      columns.push({
+        data: null,
+        fnCreatedCell: function(nTd, sData, oData, iRow, iCol) {
+          let btn = '';
+          if (oData.run_url) {
+            var run_url = oData.run_url;
+            btn = `<a href="${run_url}" target="_blank">View Run</a>`;
+          }
+          $(nTd).html(btn);
+        }
+      });
+    } else if ($s.mainCols[i] == '$plusButton') {
+      columns.push({
+        className: 'details-control',
+        orderable: false,
+        data: null,
+        defaultContent: '<i class="cil-plus"></i>'
+      });
+    } else {
+      columns.push({ data: $s.mainCols[i] });
+    }
+  }
+  var dataTableObj = {
+    columns: columns,
+    // select: {
+    //   style: 'multi',
+    //   selector: 'td:not(.no_select_row)'
+    // },
+    // order: [[24, 'desc']],
+    columnDefs: [
+      {
+        targets: getHideColIds(),
+        visible: false
+      },
+      { defaultContent: '-', targets: '_all' } //hides undefined error
+    ],
+    initComplete: initCompDmetaTable,
+    lengthMenu: [
+      [10, 25, 50, -1],
+      [10, 25, 50, 'All']
+    ]
+  };
+
+  dataTableObj.dom = '<"' + searchBarID + '.pull-left"f>lrt<"pull-left"i><"bottom"p><"clear">';
+  dataTableObj.pageLength = 25;
+  dataTableObj.destroy = true;
+  dataTableObj.data = data;
+  dataTableObj.hover = true;
+  // speed up the table loading
+  dataTableObj.deferRender = true;
+  dataTableObj.scroller = true;
+  dataTableObj.scrollCollapse = true;
+  dataTableObj.scrollX = 500;
+  dataTableObj.sScrollX = true;
+  console.log(dataTableObj);
+  $s.dmetaTable = $(TableID).DataTable(dataTableObj);
 };

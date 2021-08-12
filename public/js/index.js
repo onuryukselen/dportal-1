@@ -1,12 +1,10 @@
 /* eslint-disable */
 import '@babel/polyfill';
 import { login, logout } from './login';
-import { prepareDmetaData } from './jsfuncs';
-import { refreshDmetaTable } from './dmetaTable';
-import { getAdminNavbar, loadProfileTabContent } from './admin-overview';
-import { prepareBarGraph } from './chartjs';
 import { prepareBreadcrumb } from './breadcrumb';
-import { prepareSidebar } from './sidebar';
+import { prepareProjectNav } from './dmetaTable';
+import { getAdminNavbar, loadProfileTabContent } from './admin-overview';
+
 import { showAlert } from './alerts';
 import axios from 'axios';
 import 'jquery';
@@ -99,42 +97,7 @@ if (alertMessage) showAlert('success', alertMessage, 20);
 
 (async () => {
   if (allProjectNav) {
-    const project = 'vitiligo';
-    const send = { url: `/api/v1/projects/${project}/data/sample/detailed` };
-    const res = await axios({
-      method: 'POST',
-      url: '/api/v1/dmeta',
-      data: send
-    });
-    console.log(res.data);
-    const data = prepareDmetaData(res.data);
-
-    refreshDmetaTable(data, 'dmetaDetailed', project);
-    prepareBarGraph(data, {
-      dataCol: 'clin_pheno',
-      xLabel: 'Clinical Phenotype',
-      yLabel: 'Samples',
-      colorSchema: 'Tableau10',
-      chartId: 'basicBarChart1'
-    });
-    prepareBarGraph(data, {
-      dataCol: 'skin',
-      xLabel: 'Skin',
-      yLabel: 'Samples',
-      colorSchema: 'Tableau10',
-      chartId: 'basicBarChart2'
-    });
-    prepareBarGraph(data, {
-      dataCol: 'status',
-      xLabel: 'Status',
-      yLabel: 'Samples',
-      colorSchema: 'Tableau10',
-      chartId: 'basicBarChart3'
-    });
-    prepareBreadcrumb('Dashboard', data);
-    prepareSidebar(data);
-    $('a.collection[data-toggle="tab"]').trigger('show.coreui.tab');
-    $('[data-toggle="tooltip"]').tooltip();
+    prepareProjectNav();
   }
   if (adminAllProfileNav) {
     const adminNavbar = await getAdminNavbar(userRole);

@@ -46,30 +46,17 @@ const insertSidebarBlocks = (cols, colLabels, dataSummary, colData) => {
       </div>
     </div>`;
   }
+  $('#mainSidebarFilter').empty();
   $('#mainSidebarFilter').append(div);
 };
 
-export const prepareSidebar = function(data) {
+export const prepareSidebar = function(data, project) {
   const colData = getDmetaColumns();
   const sideCols = colData.sidebarFilterCols;
   const colLabels = getSelectedColLabels(colData.sidebarFilterCols);
 
   if (sideCols) {
-    const dataSummary = createDataSummary(data, sideCols);
+    const dataSummary = createDataSummary(data, sideCols, project);
     insertSidebarBlocks(sideCols, colLabels, dataSummary, colData);
-    $('.collapse').on('show.coreui.collapse', function(e) {
-      $(this)
-        .prev('.card-header')
-        .find('.cil')
-        .removeClass('cil-plus')
-        .addClass('cil-minus');
-    });
-    $('.collapse').on('hide.coreui.collapse', function(e) {
-      $(this)
-        .prev('.card-header')
-        .find('.cil')
-        .removeClass('cil-minus')
-        .addClass('cil-plus');
-    });
   }
 };

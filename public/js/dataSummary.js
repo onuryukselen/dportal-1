@@ -1,13 +1,13 @@
 /* eslint-disable */
-let $scope = {};
-$scope.dmeta_summary = {};
+let $s = {};
+$s.dmeta_summary = {};
 
 // returns summary object
 // { 'Skin': { "Healthy": 3, "Lesional": 10}}
-export const createDataSummary = function(data, fields) {
+export const createDataSummary = function(data, fields, project) {
   for (var i = 0; i < fields.length; i++) {
     const field = fields[i];
-    if (!$scope.dmeta_summary[field]) {
+    if (!$s.dmeta_summary[project] || !$s.dmeta_summary[project][field]) {
       let lookup = {};
       for (var k = 0; k < data.length; k++) {
         if (data[k][field]) {
@@ -19,8 +19,9 @@ export const createDataSummary = function(data, fields) {
           }
         }
       }
-      $scope.dmeta_summary[field] = lookup;
+      if (!$s.dmeta_summary[project]) $s.dmeta_summary[project] = {};
+      $s.dmeta_summary[project][field] = lookup;
     }
   }
-  return $scope.dmeta_summary;
+  return $s.dmeta_summary[project];
 };
