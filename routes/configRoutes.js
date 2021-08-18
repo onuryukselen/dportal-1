@@ -6,18 +6,17 @@ const router = express.Router();
 
 router.use(authController.isLoggedIn);
 router.use(authController.requireLogin);
-router.use(authController.restrictTo('admin'));
 router.use(authController.setDefPerms);
 
 router
   .route('/')
   .get(configController.getAllConfigs)
-  .post(configController.createConfig);
+  .post(authController.restrictTo('admin'), configController.createConfig);
 
 router
   .route('/:id')
   .get(configController.getConfig)
-  .patch(configController.updateConfig)
-  .delete(configController.deleteConfig);
+  .patch(authController.restrictTo('admin'), configController.updateConfig)
+  .delete(authController.restrictTo('admin'), configController.deleteConfig);
 
 module.exports = router;
