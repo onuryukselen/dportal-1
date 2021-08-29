@@ -668,26 +668,26 @@ export const refreshDmetaTable = function(data, id, project) {
       tableValues.push(data.name);
       var cpData = $.extend(true, {}, data);
       var file_dir = cpData.file_dir;
-      var files_used = cpData.files_used;
+      var file_used = cpData.file_used;
       // convert dmeta format (Array) to dnext format
       if (file_dir && file_dir.constructor === Array) {
         file_dir = file_dir.join('\t');
       }
-      if (files_used && files_used.constructor === Array) {
-        for (var i = 0; i < files_used.length; i++) {
-          files_used[i] = files_used[i].join(',');
+      if (file_used && file_used.constructor === Array) {
+        for (var i = 0; i < file_used.length; i++) {
+          file_used[i] = file_used[i].join(',');
         }
-        files_used = files_used.join(' | ');
+        file_used = file_used.join(' | ');
       }
-      if (files_used) {
+      if (file_used) {
         if (data.file_dir) {
           tableLabels.push('Input File(s) Directory');
           tableValues.push(pattClean(file_dir));
           tableLabels.push('Input File(s)');
-          tableValues.push(files_used.replace(/\|/g, '<br/>'));
+          tableValues.push(file_used.replace(/\|/g, '<br/>'));
         } else {
           tableLabels.push('GEO ID');
-          tableValues.push(files_used.replace(/\|/g, '<br/>'));
+          tableValues.push(file_used.replace(/\|/g, '<br/>'));
         }
       }
 
