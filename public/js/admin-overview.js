@@ -12,7 +12,7 @@ import {
 } from './jsfuncs';
 
 // GLOBAL SCOPE
-let $s = { usergroups: {}, server: [] };
+let $s = { projects: [], collections: [], apiConfigs: [], usergroups: {}, server: [] };
 
 const ajaxCall = async (method, url) => {
   console.log(method, url);
@@ -259,7 +259,6 @@ const refreshConfigTable = async () => {
   let fomatted_data = [];
   if (data.length) {
     fomatted_data = data.map(i => {
-      if (i.graphs) i.graphs = JSON.stringify(i.graphs);
       i.creationDate = moment(i.creationDate).format('YYYY-MM-DD');
       return i;
     });
@@ -277,11 +276,7 @@ const refreshConfigTable = async () => {
     columns.push({
       data: 'graphs',
       fnCreatedCell: function(nTd, sData, oData, iRow, iCol) {
-        if (oData.graphs) {
-          $(nTd).html(oData.graphs.substring(0, 30) + '...');
-        } else {
-          $(nTd).html('');
-        }
+        $(nTd).html(JSON.stringify(oData.graphs).substring(0, 30) + '...');
       }
     });
     columns.push({
@@ -560,6 +555,28 @@ const getDropdown = (name, data) => {
   dropdown += `</select>`;
   return dropdown;
 };
+const getArrObjDropdown = (name, data, settings) => {
+  let placeholder = '';
+  let className = '';
+  let selected = '';
+  let selectedText = '';
+  if (settings.class) className = settings.class;
+  if (settings.placeholder) placeholder = settings.placeholder;
+  if (settings.selected) selected = settings.selected;
+  let dropdown = `<select class="form-control ${className}" name="${name}" >`;
+  if (placeholder) dropdown += `<option  selected disabled value="">${placeholder}</option>`;
+  if (data) {
+    data.forEach(i => {
+      selectedText = '';
+      if (selected && i._id == selected) {
+        selectedText = 'selected';
+      }
+      dropdown += `<option  ${selectedText} value="${i._id}">${i.name}</option>`;
+    });
+  }
+  dropdown += `</select>`;
+  return dropdown;
+};
 
 const getAdminUserForm = () => {
   let ret = `<form id="userForm">`;
@@ -580,15 +597,66 @@ const getServerUserForm = () => {
   ret += '</form>';
   return ret;
 };
-const getConfigUserForm = () => {
+const getConfigUserForm = async () => {
   let ret = `<form id="configForm">`;
-  const project_name_element = `<div class="input-group">
-    ${getInputElement('project_name', 'required')}
-    <div class="input-group-append"><button id="validateProjectBut" class="btn btn-primary" type="button" data-toggle="tooltip" data-placement="bottom" title="Please enter project name and click search button." ><i class="cil-search"> </i></button></div>
-  </div>`;
-  ret += ``;
-  ret += getFormRow(project_name_element, 'Project Name', {});
-  ret += getFormRow(getTextareaElement('graphs', ''), 'Graph Settings', {});
+  // get Projects
+  let res;
+  try {
+    const url = `/api/v1/projects`;
+    const send = { url };
+    res = await axios({
+      method: 'POST',
+      url: '/api/v1/dmeta',
+      data: send
+    });
+  } catch (err) {
+    console.log(err);
+    showInfoModal(`Project is not found in Dmeta.`);
+    return;
+  }
+  const projectData = prepareDmetaData(res.data);
+  $s.projects = projectData;
+  console.log(projectData);
+
+  // get collections
+  res = '';
+  try {
+    const url = `/api/v1/collections`;
+    const send = { url };
+    res = await axios({
+      method: 'POST',
+      url: '/api/v1/dmeta',
+      data: send
+    });
+  } catch (err) {
+    return;
+  }
+  $s.collections = prepareDmetaData(res.data);
+  const projectDataDropdown = projectData.map(p => {
+    return { _id: p.name, name: p.name };
+  });
+  ret += getFormRow(
+    getArrObjDropdown('project_name', projectDataDropdown, {
+      placeholder: ' -- Select --',
+      class: 'validateProject'
+    }),
+    'Project',
+    {}
+  );
+  //
+
+  ret += getFormRow(
+    getArrObjDropdown('api_config', [], {
+      class: 'apiConfigRoute'
+    }),
+    'API Routes',
+    {}
+  );
+  ret += getFormRow(
+    `<div class="graph-settings" style="display:none;"></div>`,
+    'Graph Settings',
+    {}
+  );
   ret += getFormRow(
     `<div class="check-columns" style="display:none;"></div>`,
     'Column Settings',
@@ -615,108 +683,281 @@ const convertConfigFormat = formObj => {
     reorderedColumns.push(columns.filter(c => c.name == order[i])[0]);
   }
   formObj.columns = reorderedColumns;
+
+  // graph Settings
+  let graphs = [];
+  $('#graph-settings-table>tbody>tr').each(function(index) {
+    const formValues = $(this).find('input,select');
+    let [rowObj, stop] = createFormObj(formValues, '', true, true);
+    rowObj.name = $(this)
+      .find('[name=name')
+      .html();
+    graphs.push(rowObj);
+  });
+  console.log(graphs);
+  formObj.graphs = graphs;
   return formObj;
+};
+
+const insertColumnSettingsTable = (keys, type) => {
+  if (keys) {
+    // let removeCol = ['_id'];
+    // keys = keys.filter(item => !removeCol.includes(item));
+    let tbody = '';
+
+    for (let i = 0; i < keys.length; i++) {
+      let label = '';
+      let checked = '';
+      if (type == 'new') {
+        label = keys[i];
+        checked = 'checked';
+      }
+      tbody += `
+    <tr>
+      <td><span name="name">${keys[i]}</span></td>
+      <td><input class="form-control" type="text" name="label" value="${label}"></input></td>
+      <td>
+          <div class="form-check" style="margin-left: 25px;">
+              <input name="main" type="checkbox" ${checked} class="form-check-input" style="position:relative;" >
+          </div>
+      </td>
+      <td>
+          <div class="form-check" style="margin-left: 25px;">
+              <input name="visible" type="checkbox" ${checked} class="form-check-input" style="position:relative;" >
+          </div>
+      </td>
+      <td>
+          <div class="form-check" style="margin-left: 25px;">
+              <input name="toogle" type="checkbox" ${checked} class="form-check-input" style="position:relative;" >
+          </div>
+      </td>
+      <td>
+          <div class="form-check" style="margin-left: 25px;">
+              <input name="sidebar" type="checkbox" ${checked} class="form-check-input " style="position:relative;" >
+          </div>
+      </td>
+    </tr>`;
+    }
+    let form = `
+    <table id="config-column-table" class="table table-striped">
+      <thead>
+        <tr>
+          <th>Column Name</th>
+          <th>Column Label</th>
+          <th>Main Table Column</th>
+          <th>Visible on Load</th>
+          <th>Allow Toogle</th>
+          <th>Show in the sidebar</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tbody}
+      </tbody>
+    </table>`;
+    const orderRow = getFormRow(
+      `<input id="check-columns-order" class="form-control" type="text" name="order"  value="${keys.join(
+        ','
+      )}"></input>`,
+      'Column Order',
+      {}
+    );
+    $('div.check-columns').css('display', 'inline');
+    $('div.check-columns').empty();
+    $('div.check-columns').append(form);
+    if (document.querySelector('#check-columns-order')) {
+      $('div.check-columns')
+        .closest('.row')
+        .next()
+        .remove();
+    }
+    $('div.check-columns')
+      .closest('.row')
+      .after(orderRow);
+    $('#check-columns-order').selectize({
+      plugins: ['drag_drop'],
+      delimiter: ',',
+      persist: true
+    });
+  }
+};
+
+const insertGraphSettingsTable = (keys, type, collectionName) => {
+  if (keys) {
+    let tbody = '';
+    const fieldData = keys.map(k => {
+      return { _id: k, name: k };
+    });
+    const fieldsDropdown = getArrObjDropdown('dataCol', fieldData, {
+      placeholder: ' -- Select --',
+      class: 'graph-field'
+    });
+    const barTypeDropdown = getArrObjDropdown('type', [{ _id: 'bar', name: 'bar' }], {});
+    for (let i = 0; i < 3; i++) {
+      let label = '';
+      if (type == 'new') {
+        label = collectionName;
+      }
+      tbody += `
+    <tr>
+      <td>${barTypeDropdown}</td>
+      <td>${fieldsDropdown}</td>
+      <td><input class="form-control" type="text" name="xLabel" value=""></input></td>
+      <td><input class="form-control" type="text" name="yLabel" value="${label}"></input></td>
+    </tr>`;
+    }
+    //{"type":"bar","dataCol":"status","xLabel":"Status","yLabel":"Samples"}]
+    let form = `
+    <table id="graph-settings-table" class="table table-striped">
+      <thead>
+        <tr>
+          <th>Graph Type</th>
+          <th>Data Field</th>
+          <th>x-Axis Label</th>
+          <th>y-Axis Label</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tbody}
+      </tbody>
+    </table>`;
+
+    $('div.graph-settings').css('display', 'inline');
+    $('div.graph-settings').empty();
+    $('div.graph-settings').append(form);
+  }
+};
+const fillDropdown = (apiConfigDropdown, dropdownData) => {
+  $(apiConfigDropdown).empty();
+  $(apiConfigDropdown).append(
+    $('<option>', {
+      value: '',
+      text: '-- Select -- '
+    })
+  );
+  for (let i = 0; i < dropdownData.length; i++) {
+    $(apiConfigDropdown).append(
+      $('<option>', {
+        value: dropdownData[i]._id,
+        text: dropdownData[i].name
+      })
+    );
+  }
+};
+const validateProject = async projectName => {
+  const projectID = $s.projects.filter(p => p.name == projectName)[0]._id;
+  const apiConfigDropdown = $('#crudModal').find('[name="api_config"]');
+  if (!projectID) return;
+  const url = `/api/v1/config/apis?projectID=${projectID}`;
+  const send = { url };
+  let res;
+  try {
+    res = await axios({
+      method: 'POST',
+      url: '/api/v1/dmeta',
+      data: send
+    });
+  } catch (err) {
+    $(apiConfigDropdown).empty();
+    showInfoModal(`Please define sample route in Dmeta API config for project configuration.`);
+    return;
+  }
+  console.log(res.data);
+  const apiConfigData = prepareDmetaData(res.data);
+  $s.apiConfigs = apiConfigData;
+  const dropdownData = apiConfigData.map(c => {
+    let collectionName = '';
+    const collectionData = $s.collections.filter(col => col._id === c.collectionID);
+    if (collectionData && collectionData[0]) collectionName = collectionData[0].name;
+    return {
+      _id: c._id,
+      name: `/api/v1/projects/${projectName}/data/${collectionName}/format/${c.route}`
+    };
+  });
+  fillDropdown(apiConfigDropdown, dropdownData);
 };
 
 const bindEventHandlers = () => {
   // -------- CONFIGS ------------------------------
-  $(document).on('click', `#validateProjectBut`, async function(e) {
-    const project = $(this)
-      .closest('.input-group')
+  $(document).on('change', `.graph-field`, async function(e) {
+    const field = $(this).val();
+    $(this)
+      .closest('td')
+      .next('td')
       .find('input')
-      .val();
-    const url = `/api/v1/projects/${project}/data/sample/format/detailed`;
-    const send = { url };
-    let res;
-    try {
-      res = await axios({
-        method: 'POST',
-        url: '/api/v1/dmeta',
-        data: send
-      });
-    } catch (err) {
-      showInfoModal(
-        `Please define ${url} route in Dmeta API config and insert sample data before project configuration.`
-      );
-      return;
-    }
-    console.log(res.data);
-    const data = prepareDmetaData(res.data);
-    if (data[0]) {
-      let keys = Object.keys(data[0]);
-      let removeCol = ['_id'];
-      keys = keys.filter(item => !removeCol.includes(item));
-      let tbody = '';
+      .val(field);
+  });
 
-      for (let i = 0; i < keys.length; i++) {
-        tbody += `
-      <tr>
-        <td><span name="name">${keys[i]}</span></td>
-        <td><input class="form-control" type="text" name="label" value=""></input></td>
-        <td>
-            <div class="form-check" style="margin-left: 25px;">
-                <input name="main" type="checkbox" class="form-check-input" style="position:relative;" >
-            </div>
-        </td>
-        <td>
-            <div class="form-check" style="margin-left: 25px;">
-                <input name="visible" type="checkbox" class="form-check-input" style="position:relative;" >
-            </div>
-        </td>
-        <td>
-            <div class="form-check" style="margin-left: 25px;">
-                <input name="toogle" type="checkbox" class="form-check-input" style="position:relative;" >
-            </div>
-        </td>
-        <td>
-            <div class="form-check" style="margin-left: 25px;">
-                <input name="sidebar" type="checkbox" class="form-check-input " style="position:relative;" >
-            </div>
-        </td>
-      </tr>`;
-      }
-      let form = `
-      <table id="config-column-table" class="table table-striped">
-        <thead>
-          <tr>
-            <th>Column Name</th>
-            <th>Column Label</th>
-            <th>Main Table Column</th>
-            <th>Visible on Load</th>
-            <th>Allow Toogle</th>
-            <th>Show in the sidebar</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tbody}
-        </tbody>
-      </table>`;
-      const orderRow = getFormRow(
-        `<input id="check-columns-order" class="form-control" type="text" name="order"  value="${keys.join(
-          ','
-        )}"></input>`,
-        'Column Order',
-        {}
-      );
-      $('div.check-columns').css('display', 'inline');
-      $('div.check-columns').empty();
-      $('div.check-columns').append(form);
-      if (document.querySelector('#check-columns-order')) {
-        $('div.check-columns')
-          .closest('.row')
-          .next()
-          .remove();
-      }
-      $('div.check-columns')
-        .closest('.row')
-        .after(orderRow);
-      $('#check-columns-order').selectize({
-        plugins: ['drag_drop'],
-        delimiter: ',',
-        persist: true
-      });
+  $(document).on('change', `.apiConfigRoute`, async function(e) {
+    const apiConfigID = $(this).val();
+    const apiConf = $s.apiConfigs.filter(a => a._id == apiConfigID);
+    if (apiConf && apiConf[0] && apiConf[0].config && apiConf[0].config.rename) {
+      let columns = apiConf[0].config.rename.split(' ');
+
+      let collectionName = '';
+      const collectionData = $s.collections.filter(col => col._id === apiConf[0].collectionID);
+      if (collectionData && collectionData[0]) collectionName = collectionData[0].name;
+
+      let type = 'new';
+      // if ($('#crudModalTitle').text() == 'Insert Config') {
+      //   type = 'new';
+      // }
+      insertGraphSettingsTable(columns, type, collectionName);
+      insertColumnSettingsTable(columns, type);
     }
   });
+
+  $(document).on('change', `.validateProject`, async function(e) {
+    const projectName = $(this).val();
+    validateProject(projectName);
+  });
+  const createGraphTable = (data, columns) => {
+    console.log(data);
+    let tbody = '';
+    let keys = columns.map(d => d && d.name);
+    const fieldData = keys.map(k => {
+      return { _id: k, name: k };
+    });
+    for (let i = 0; i < data.length; i++) {
+      const xLabel = data[i] && data[i].xLabel ? data[i].xLabel : '';
+      const yLabel = data[i] && data[i].yLabel ? data[i].yLabel : '';
+      const dataCol = data[i] && data[i].dataCol ? data[i].dataCol : '';
+
+      const fieldsDropdown = getArrObjDropdown('dataCol', fieldData, {
+        placeholder: ' -- Select --',
+        class: 'graph-field',
+        selected: dataCol
+      });
+      const barTypeDropdown = getArrObjDropdown('type', [{ _id: 'bar', name: 'bar' }], {});
+
+      tbody += `
+        <tr>
+          <td>${barTypeDropdown}</td>
+          <td>${fieldsDropdown}</td>
+          <td><input class="form-control" type="text" name="xLabel" value="${xLabel}"></input></td>
+          <td><input class="form-control" type="text" name="yLabel" value="${yLabel}"></input></td>
+        </tr>`;
+    }
+    //{"type":"bar","dataCol":"status","xLabel":"Status","yLabel":"Samples"}]
+    let form = `
+        <table id="graph-settings-table" class="table table-striped">
+          <thead>
+            <tr>
+              <th>Graph Type</th>
+              <th>Data Field</th>
+              <th>x-Axis Label</th>
+              <th>y-Axis Label</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tbody}
+          </tbody>
+        </table>`;
+
+    $('div.graph-settings').css('display', 'inline');
+    $('div.graph-settings').empty();
+    $('div.graph-settings').append(form);
+  };
+
   const createConfigTable = data => {
     let tbody = '';
     let keys = data.map(d => d && d.name);
@@ -790,7 +1031,7 @@ const bindEventHandlers = () => {
   };
   $(document).on('click', `button.admin-add-config`, async function(e) {
     $('#crudModalError').empty();
-    const form = getConfigUserForm();
+    const form = await getConfigUserForm();
     $('#crudModalTitle').text(`Insert Config`);
     $('#crudModalYes').text('Save');
     $('#crudModalBody').empty();
@@ -808,10 +1049,7 @@ const bindEventHandlers = () => {
       });
       let [formObj, stop] = createFormObj(formValues, requiredFields, true, true);
       formObj = convertConfigFormat(formObj);
-      if (formObj.graphs && !IsJson5String(formObj.graphs)) {
-        showInfoModal('Please enter a valid JSON for graph settings.');
-      } else if (!stop) {
-        if (formObj.graphs) formObj.graphs = JSON5.parse(formObj.graphs);
+      if (!stop) {
         try {
           const res = await axios({
             method: 'POST',
@@ -877,15 +1115,23 @@ const bindEventHandlers = () => {
     const id = data._id;
 
     $('#crudModalError').empty();
-    const form = getConfigUserForm();
+    const form = await getConfigUserForm();
     $('#crudModalTitle').text(`Edit Config`);
     $('#crudModalYes').text('Save');
     $('#crudModalBody').empty();
     $('#crudModalBody').append(getErrorDiv());
     $('#crudModalBody').append(form);
     $('#crudModal').off();
+    await validateProject(data.project_name);
+
+    // $('#crudModal')
+    //   .find('.apiConfigRoute')
+    //   .val(data.api_config)
+    //   .trigger('change');
+
     fillFormByName('#configForm', 'input, select,textarea', data, true);
     createConfigTable(data.columns);
+    createGraphTable(data.graphs, data.columns);
     $('#crudModal').on('click', '#crudModalYes', async function(e) {
       e.preventDefault();
       $('#crudModalError').empty();
@@ -898,10 +1144,7 @@ const bindEventHandlers = () => {
       formObj = convertConfigFormat(formObj);
 
       console.log(formObj);
-      if (formObj.graphs && !IsJson5String(formObj.graphs)) {
-        showInfoModal('Please enter a valid JSON for graph settings.');
-      } else if (!stop) {
-        if (formObj.graphs) formObj.graphs = JSON5.parse(formObj.graphs);
+      if (!stop) {
         try {
           const res = await axios({
             method: 'PATCH',

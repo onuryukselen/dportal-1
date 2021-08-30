@@ -6,6 +6,9 @@ const configSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide project name.']
   },
+  api_config: {
+    type: String
+  },
   graphs: {
     type: 'Mixed'
   },
