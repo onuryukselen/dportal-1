@@ -1032,7 +1032,7 @@ export const refreshDmetaTable = function(data, id, project) {
         }
         // object data for table format
       } else if (data[i] && data[i].doc && typeof data[i].doc === 'object') {
-        if (data[i].doc['Number of Cells'] && data[i].doc['Mean UMIs per Cell']) {
+        if (data[i].doc['Number of Barcodes']) {
           ret += insertOutCollObjectSingleCellTable(data[i], sample_id);
         } else {
           ret += insertOutCollObjectTable(data[i], sample_id);
