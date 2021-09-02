@@ -746,7 +746,7 @@ const insertColumnSettingsTable = (keys, type) => {
           <th>Column Label</th>
           <th>Main Table Column</th>
           <th>Visible on Load</th>
-          <th>Allow Toogle</th>
+          <th>Allow Toggle</th>
           <th>Show in the sidebar</th>
         </tr>
       </thead>
@@ -1002,7 +1002,7 @@ const bindEventHandlers = () => {
           <th>Column Label</th>
           <th>Main Table Column</th>
           <th>Visible on Load</th>
-          <th>Allow Toogle</th>
+          <th>Allow Toggle</th>
           <th>Show in the sidebar</th>
         </tr>
       </thead>

@@ -1,4 +1,7 @@
-12.09.2021 Version 0.0.24
+02.09.2021 Version 0.0.25
+Bug fixed on getting API route. 
+
+12.08.2021 Version 0.0.24
 Admin tab and project configuration panel added for admin.
 Dashboard now supports multiple projects and their configurations.
 

@@ -35,6 +35,21 @@ const ajaxCall = async (method, url) => {
   }
 };
 
+const ajaxDmetaCall = async data => {
+  try {
+    const res = await axios({
+      method: 'POST',
+      url: '/api/v1/dmeta',
+      data: data
+    });
+
+    return res.data.data.data;
+  } catch (err) {
+    //console.log(err);
+    return '';
+  }
+};
+
 // Config for Dmeta table
 // Main columns for table
 // $s.mainCols = [
@@ -273,6 +288,19 @@ const insertTableHeaders = TableID => {
   }
 };
 
+const getProjectRoute = async (projectName, apiConfigId) => {
+  let url = '';
+  const apiConfigData = await ajaxDmetaCall({ url: `/api/v1/config/apis/${apiConfigId}` });
+  if (apiConfigData && apiConfigData[0]) {
+    let collectionName = '';
+    const collectionData = $s.collections.filter(col => col._id === apiConfigData[0].collectionID);
+    if (collectionData && collectionData[0]) collectionName = collectionData[0].name;
+    url = `/api/v1/projects/${projectName}/data/${collectionName}/format/${apiConfigData[0].route}`;
+  }
+
+  return url;
+};
+
 const prepareColumnConfig = columnConfig => {
   let mainCols = [];
   let mainColLabels = [];
@@ -340,7 +368,9 @@ const bindEventHandlers = () => {
     if ($s.project[project] && $s.project[project].data) {
       data = $s.project[project].data;
     } else {
-      const send = { url: `/api/v1/projects/${project}/data/sample/format/detailed` };
+      const url = await getProjectRoute(project, projectConfig.api_config);
+      if (!url) return '';
+      const send = { url };
       const res = await axios({
         method: 'POST',
         url: '/api/v1/dmeta',
@@ -379,19 +409,26 @@ const bindEventHandlers = () => {
   });
 };
 
-const getDropdown = (className, name, data) => {
-  return dropdown;
-};
-
 export const prepareProjectNav = async () => {
   bindEventHandlers();
   const configs = await ajaxCall('GET', `/api/v1/config`);
+
+  let [projects, collections] = await Promise.all([
+    ajaxDmetaCall({ url: '/api/v1/projects' }),
+    ajaxDmetaCall({ url: '/api/v1/collections' })
+  ]);
+  $s.projects = projects;
+  $s.collections = collections;
+
   $s.configs = configs;
   let dropdown = `<select class="form-control form-control-sm toggle-project" >`;
   if (configs) {
     configs.forEach(i => {
-      const name = i.project_name.charAt(0).toUpperCase() + i.project_name.slice(1);
-      dropdown += `<option  value="${i.project_name}">${name}</option>`;
+      const checkProjectPerm = $s.projects.filter(p => p.name == i.project_name);
+      if (checkProjectPerm && checkProjectPerm[0]) {
+        const name = i.project_name.charAt(0).toUpperCase() + i.project_name.slice(1);
+        dropdown += `<option  value="${i.project_name}">${name}</option>`;
+      }
     });
   }
   dropdown += `</select>`;
