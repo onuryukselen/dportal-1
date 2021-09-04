@@ -50,185 +50,6 @@ const ajaxDmetaCall = async data => {
   }
 };
 
-// Config for Dmeta table
-// Main columns for table
-// $s.mainCols = [
-//   '$plusButton',
-//   'name',
-//   'status',
-//   'series',
-//   'patient',
-//   'aliquot',
-//   'clin_pheno',
-//   'skin',
-//   'patient_note',
-//   'cell_density_tc',
-//   'cell_density_indrop',
-//   'cells_umis_gt_500',
-//   'col_date',
-//   'library_tube_id',
-//   'pool_id',
-//   'bead_batch',
-//   'blister_comments',
-//   'blister_loc',
-//   'blister_num',
-//   'ethnicity',
-//   'gender',
-//   'biosample_name',
-//   'biosample_type',
-//   'organism',
-//   'perc_live_cells',
-//   'total_cells',
-//   'visit_num',
-//   'volume_bf',
-//   'comment',
-//   'contract',
-//   'index_id',
-//   'index_seq',
-//   'run_comments',
-//   'sc_lib_status',
-//   'seq_comments',
-//   'seq_details',
-//   'sequence_date',
-//   'unique_id',
-//   'total_valid_reads',
-//   'duplication_rate',
-//   'mean_umi',
-//   'mean_cell',
-//   'date_created',
-//   'owner',
-//   '$detailsButton'
-// ];
-
-// $s.mainColLabels = [
-//   '',
-//   'Name',
-//   'Status',
-//   'Series',
-//   'Patient',
-//   'Aliquot',
-//   'Clinical phenotype',
-//   'Skin',
-//   'Patient Note',
-//   'Cell density (TC)',
-//   'Cell density indrop',
-//   'Cells UMIs>500',
-//   'Collect date',
-//   'Library tube id',
-//   'Pool id',
-//   'Bead Batch',
-//   'Blister Comments',
-//   'Blister Location',
-//   'Blister #',
-//   'Ethnicity',
-//   'Gender',
-//   'Biosample Name',
-//   'Biosample Type',
-//   'Organism',
-//   '%Live Cells',
-//   'Total Cells',
-//   'Visit #',
-//   'Volume BF',
-//   'Comment',
-//   'Contract',
-//   'Index Id',
-//   'Index Seq',
-//   'Run Comments',
-//   'Sc Lib Status',
-//   'Seq Comments',
-//   'Seq Details',
-//   'Sequence Date',
-//   'Unique Id',
-//   'Total Valid Reads',
-//   'Duplication Rate',
-//   'Mean UMIs per Cell',
-//   'Mean Genes per Cell',
-//   'Added on',
-//   'Owner',
-//   'Run'
-// ];
-
-// columns that are going to be visible on startup
-// $s.initialShowCols = [
-//   '$plusButton',
-//   'name',
-//   'status',
-//   'experiment',
-//   'patient',
-//   'aliquot',
-//   'clin_pheno',
-//   'skin',
-//   'patient_note',
-//   'cell_density_tc',
-//   'cell_density_indrop',
-//   'col_date',
-//   'library_tube_id',
-//   'pool_id',
-//   'date_created',
-//   'owner',
-//   '$detailsButton'
-// ];
-
-// columns that listed in configuration menu
-// each config column defined in different object
-// [{"main": ["name", "status"]}, {"sample_summary":'sample_summary.Total Reads'}]
-
-// $s.showHideCols = [
-//   'name',
-//   'status',
-//   'series',
-//   'patient',
-//   'aliquot',
-//   'clin_pheno',
-//   'skin',
-//   'patient_note',
-//   'cell_density_tc',
-//   'cell_density_indrop',
-//   'cells_umis_gt_500',
-//   'col_date',
-//   'library_tube_id',
-//   'pool_id',
-//   'bead_batch',
-//   'blister_comments',
-//   'blister_loc',
-//   'blister_num',
-//   'ethnicity',
-//   'gender',
-//   'biosample_name',
-//   'biosample_type',
-//   'organism',
-//   'perc_live_cells',
-//   'total_cells',
-//   'visit_num',
-//   'volume_bf',
-//   'comment',
-//   'contract',
-//   'index_id',
-//   'index_seq',
-//   'run_comments',
-//   'sc_lib_status',
-//   'seq_comments',
-//   'seq_details',
-//   'sequence_date',
-//   'unique_id',
-//   'total_valid_reads',
-//   'duplication_rate',
-//   'mean_umi',
-//   'mean_cell',
-//   'date_created'
-// ];
-
-// $s.sidebarFilterCols = [
-//   'status',
-//   'series',
-//   'patient',
-//   'aliquot',
-//   'clin_pheno',
-//   'skin',
-//   'pool_id',
-//   'owner'
-// ];
-
 // input: selected mainCols in array
 // returns: labels in array
 export const getSelectedColLabels = selCols => {
@@ -791,8 +612,12 @@ export const refreshDmetaTable = function(data, id, project) {
       const runData = sampleRunData.filter(e => e._id == runId);
       const runUrl = runData[0] && runData[0].run_url ? runData[0].run_url : '';
       if (data.doc) {
-        blocks += getRunBlock('Number of Cells', data.doc['Number of Cells'], 'single');
-        blocks += getRunBlock('Mean UMIs per Cell', data.doc['Mean UMIs per Cell'], 'single');
+        blocks += getRunBlock('Number of Barcodes', data.doc['Number of Barcodes'], 'single');
+        blocks += getRunBlock(
+          'Mean UMIs per Barcodes',
+          data.doc['Mean UMIs per Barcodes'],
+          'single'
+        );
         blocks += getRunBlock(
           [
             'Total Reads',
@@ -814,15 +639,20 @@ export const refreshDmetaTable = function(data, id, project) {
           'Mapping'
         );
         blocks += getRunBlock(
-          ['Number of Cells', 'Number of Genes', 'Mean Genes per Cell', 'Mean UMIs per Cell'],
           [
-            data.doc['Number of Cells'],
+            'Number of Barcodes',
+            'Number of Genes',
+            'Mean Genes per Barcodes',
+            'Mean UMIs per Barcodes'
+          ],
+          [
+            data.doc['Number of Barcodes'],
             data.doc['Number of Genes'],
-            data.doc['Mean Genes per Cell'],
-            data.doc['Mean UMIs per Cell']
+            data.doc['Mean Genes per Barcodes'],
+            data.doc['Mean UMIs per Barcodes']
           ],
           'list',
-          'Cells'
+          'Barcodes'
         );
       }
 
