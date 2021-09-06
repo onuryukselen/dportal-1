@@ -111,15 +111,15 @@ const insertTableHeaders = TableID => {
 
 const getProjectRoute = async (projectName, apiConfigId) => {
   let url = '';
+  let collectionName = '';
   const apiConfigData = await ajaxDmetaCall({ url: `/api/v1/config/apis/${apiConfigId}` });
   if (apiConfigData && apiConfigData[0]) {
-    let collectionName = '';
     const collectionData = $s.collections.filter(col => col._id === apiConfigData[0].collectionID);
     if (collectionData && collectionData[0]) collectionName = collectionData[0].name;
     url = `/api/v1/projects/${projectName}/data/${collectionName}/format/${apiConfigData[0].route}`;
   }
 
-  return url;
+  return [url, collectionName];
 };
 
 const prepareColumnConfig = columnConfig => {
@@ -180,6 +180,7 @@ const bindEventHandlers = () => {
 
   $(document).on('change', 'select.toggle-project', async function(e) {
     const project = $(this).val();
+    let collectionName = '';
     const projectConfig = $s.configs.filter(i => i.project_name == project)[0];
     $s.data = { sample: {}, file: {}, server: {}, run: {}, out: {} };
     $s.outCollections = [];
@@ -188,8 +189,10 @@ const bindEventHandlers = () => {
     let data = '';
     if ($s.project[project] && $s.project[project].data) {
       data = $s.project[project].data;
+      collectionName = $s.project[project].collectionName;
     } else {
-      const url = await getProjectRoute(project, projectConfig.api_config);
+      const [url, collName] = await getProjectRoute(project, projectConfig.api_config);
+      collectionName = collName;
       if (!url) return '';
       const send = { url };
       const res = await axios({
@@ -201,10 +204,11 @@ const bindEventHandlers = () => {
       data = prepareDmetaData(res.data);
       $s.project[project] = {};
       $s.project[project].data = data;
+      $s.project[project].collectionName = collectionName;
     }
     console.log('data', data);
     if (data) {
-      refreshDmetaTable(data, 'dmetaDetailed', project);
+      refreshDmetaTable(data, 'dmetaDetailed', project, collectionName);
       const projectGraphs = projectConfig.graphs;
       for (let i = 0; i < projectGraphs.length; i++) {
         if (projectGraphs[i].type == 'bar') {
@@ -258,7 +262,7 @@ export const prepareProjectNav = async () => {
   $('.breadcrumb-dashboard').css('display', 'inline-flex');
 };
 
-export const refreshDmetaTable = function(data, id, project) {
+const refreshDmetaTable = function(data, id, project, collectionName) {
   var TableID = '#' + id + 'Table';
   var searchBarID = '#' + id + 'SearchBar';
 
@@ -346,10 +350,10 @@ export const refreshDmetaTable = function(data, id, project) {
 
     const getTableFromList = (label, value) => {
       if (!label[0]) return 'No data found.';
-      let ret = '<table class="table-not-striped" style="width:100%"><tbody>';
+      let ret = '<table class="table-not-striped" style="width:100%; table-layout:fixed;"><tbody>';
       for (var k = 0; k < label.length; k++) {
         const val = value[k] ? value[k] : '';
-        ret += `<tr><td>${label[k]}</td><td>${val}</td></tr>`;
+        ret += `<tr><td style="word-break: break-all;">${label[k]}</td><td style="word-break: break-all;">${val}</td></tr>`;
       }
       ret += '</tbody></table>';
       return ret;
@@ -503,7 +507,9 @@ export const refreshDmetaTable = function(data, id, project) {
         const res = await axios({
           method: 'POST',
           url: '/api/v1/dmeta',
-          data: { url: `/api/v1/projects/${project}/data/file/format/summary?sample_id=${rowid}` }
+          data: {
+            url: `/api/v1/projects/${project}/data/file/format/summary?${collectionName}_id=${rowid}`
+          }
         });
         const data = prepareDmetaData(res.data);
         console.log('file', data);
@@ -717,7 +723,7 @@ export const refreshDmetaTable = function(data, id, project) {
             const serverURL = `${server.url_server}${files[i]}`;
             try {
               const tableId = `file${rowid}${cleanSpecChar(link)}`;
-              const table = `<div style="margin-bottom:15px; width:100%;  overflow-x:auto;"  class="table-responsive"><table style="overflow-x:auto; width:100%; white-space: nowrap;" class="fileTables row-border table" sample_id="${rowid}" ext="${ext}" serverURL="${serverURL}" id="${tableId}"></table></div>`;
+              const table = `<div style="margin-bottom:15px; width:100%;  overflow-x:auto;"  class="table-responsive"><table style="overflow-x:auto; width:100%; white-space: nowrap;" class="fileTables row-border table" ${collectionName}_id="${rowid}" ext="${ext}" serverURL="${serverURL}" id="${tableId}"></table></div>`;
               ret += table;
             } catch (err) {
               console.log(err);
@@ -745,7 +751,7 @@ export const refreshDmetaTable = function(data, id, project) {
           method: 'POST',
           url: '/api/v1/dmeta',
           data: {
-            url: `/api/v1/projects/${project}/data/${collName}?sample_id=${sample_id}`
+            url: `/api/v1/projects/${project}/data/${collName}?${collectionName}_id=${sample_id}`
           }
         });
         const data = prepareDmetaData(res.data);
@@ -803,7 +809,7 @@ export const refreshDmetaTable = function(data, id, project) {
         $s.DTObj[project][sample_id][collName] = dataTableObj;
         const width = document.getElementById('dmetaTableContainer').offsetWidth - 60;
         const tableId = `outTable-${project}-${sample_id}-${collName}`;
-        const table = `<div style="margin-bottom:10px; margin-top:10px; width:${width}px;  overflow-x:auto;"  class="table-responsive" "><table style="width:100%; white-space: nowrap;" class="outTables row-border table " project="${project}" collName="${collName}" sample_id="${sample_id}" id="${tableId}"></table></div>`;
+        const table = `<div style="margin-bottom:10px; margin-top:10px; width:${width}px;  overflow-x:auto;"  class="table-responsive" "><table style="width:100%; white-space: nowrap;" class="outTables row-border table " project="${project}" collName="${collName}" ${collectionName}_id="${sample_id}" id="${tableId}"></table></div>`;
 
         return table;
       } catch (err) {
@@ -958,7 +964,7 @@ export const refreshDmetaTable = function(data, id, project) {
         const tableID = $(this)
           .closest('table')
           .attr('id');
-        const sample_id = $(`#${tableID}`).attr('sample_id');
+        const sample_id = $(`#${tableID}`).attr(`${collectionName}_id`);
         const collName = $(`#${tableID}`).attr('collName');
         const table = $(`#${tableID}`).DataTable();
         var row = table.row(tr);
@@ -990,7 +996,7 @@ export const refreshDmetaTable = function(data, id, project) {
       });
 
     const refreshOutTables = rowid => {
-      const tables = $(`.outTables[sample_id="${rowid}"]`);
+      const tables = $(`.outTables[${collectionName}_id="${rowid}"]`);
       console.log(tables);
       for (var i = 0; i < tables.length; i++) {
         const tableId = $(tables[i]).attr('id');
@@ -1006,7 +1012,7 @@ export const refreshDmetaTable = function(data, id, project) {
     };
 
     const refreshFileTables = async rowid => {
-      const tables = $(`.fileTables[sample_id="${rowid}"]`);
+      const tables = $(`.fileTables[${collectionName}_id="${rowid}"]`);
       console.log(tables);
       for (var i = 0; i < tables.length; i++) {
         const tableId = $(tables[i]).attr('id');
